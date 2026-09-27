@@ -127,6 +127,8 @@ struct Measure
 	std::wstring saveTo;
 	std::wstring matchOutput;
 	std::vector<Pick> picks;
+	bool menuOpen = false;
+	bool finalized = false;  // Finalize ran while the menu was open
 };
 
 struct Device
@@ -365,9 +367,26 @@ static void PickDevice(Measure* m, const std::wstring& args)
 	POINT cursor;
 	GetCursorPos(&cursor);
 	SetForegroundWindow(window);
+
+	// Rainmeter keeps running while the menu is open and may unload the skin
+	// meanwhile (game mode, a refresh). Hold an extra reference to this DLL so
+	// the code TrackPopupMenu returns to still exists, and have Finalize leave
+	// deleting `m` to us.
+	HMODULE self = nullptr;
+	GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)(void*)&PickDevice, &self);
+	m->menuOpen = true;
 	const UINT choice = (UINT)TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON, cursor.x, cursor.y, 0, window, nullptr);
+	m->menuOpen = false;
 	PostMessageW(window, WM_NULL, 0, 0);
 	DestroyMenu(menu);
+	if (m->finalized)
+	{
+		// The skin is gone. Keep the extra reference (the DLL stays loaded until
+		// Rainmeter exits) rather than unload the code we are running in.
+		delete m;
+		return;
+	}
+	FreeLibrary(self);  // Safe: Rainmeter still holds its own reference.
 	if (choice == 0) return;
 
 	const Pick& pick = picks[choice / idsPerPick];
@@ -484,5 +503,6 @@ PLUGIN_EXPORT void Finalize(void* data)
 {
 	Measure* m = (Measure*)data;
 	if (m->comInitialized) CoUninitialize();
-	delete m;
+	if (m->menuOpen) m->finalized = true;  // PickDevice deletes it when its menu closes
+	else delete m;
 }

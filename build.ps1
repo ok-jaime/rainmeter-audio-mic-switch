@@ -1,16 +1,14 @@
 <#
-  Builds the AudioMicSwitch plugin (32- and 64-bit) and packages the
-  "Audio + Mic Switch" skin as a double-click .rmskin installer in dist\.
+  Builds the plugin (32 + 64-bit) and the .rmskin installer (in dist\).
 
-  Needs llvm-mingw (https://github.com/mstorsjo/llvm-mingw/releases, the
-  ucrt-x86_64 zip): pass its folder with -Toolchain, or put its bin on PATH.
+  Needs llvm-mingw: https://github.com/mstorsjo/llvm-mingw/releases (ucrt-x86_64 zip)
+  Pass its folder with -Toolchain, or put its bin on PATH.
 
   Usage:
     powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.0.0 -Toolchain C:\llvm-mingw
 
-  The skin comes from skin\. Its @Resources\Variables.inc holds the defaults
-  new users get (no devices set); on upgrade, Rainmeter's installer keeps each
-  user's existing values in that file (VariableFiles in RMSKIN.ini).
+  skin\@Resources\Variables.inc = defaults for new users (no devices set).
+  On upgrade, the installer keeps each user's values (VariableFiles).
 #>
 param(
 	[string]$Version = '1.0.0',
@@ -72,7 +70,8 @@ foreach ($arch in @(@{ Folder = '64bit'; Target = 'x86_64' }, @{ Folder = '32bit
 	$res = Join-Path $obj "$Plugin-$($arch.Folder).res.o"
 	& (Tool "$($arch.Target)-w64-mingw32-windres") $rcFile -O coff -o $res
 	if ($LASTEXITCODE) { throw "windres failed ($($arch.Folder))" }
-	& (Tool "$($arch.Target)-w64-mingw32-clang++") -std=c++17 -O2 -Wall -shared -static -s `
+	# No link timestamp, so the same source and toolchain always give the same DLL.
+	& (Tool "$($arch.Target)-w64-mingw32-clang++") -std=c++17 -O2 -Wall -shared -static -s '-Wl,--no-insert-timestamp' `
 		-o (Join-Path $out "$Plugin.dll") (Join-Path $PSScriptRoot "plugin\$Plugin.cpp") $res -lole32
 	if ($LASTEXITCODE) { throw "compile failed ($($arch.Folder))" }
 	Write-Host "Built $($arch.Folder)\$Plugin.dll"

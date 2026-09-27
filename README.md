@@ -1,58 +1,81 @@
 # Audio + Mic Switch
 
-A one-icon [Rainmeter](https://www.rainmeter.net/) skin that switches your **playback device and microphone together** with a single click, for example between speakers + webcam mic and a headset + its mic.
+A [Rainmeter](https://www.rainmeter.net/) skin. **One click switches your output and mic together.**
 
-- **Click** the icon to switch between your speakers and headphones setups
-- **Scroll** over it to change the volume, **middle-click** to mute
-- **Right-click → Choose audio devices...** to pick which devices each setup uses
-- The icon always shows the device that's actually in use, even if you switch in Windows
-- White or black icon
+- **Click** → switch between speakers and headphones
+- **Scroll** → volume
+- **Middle-click** → mute
+- **Right-click → Choose audio devices...** → pick your devices
 
 ## Install
 
-1. Install [Rainmeter](https://www.rainmeter.net/) (4.1 or newer) if you don't have it.
-2. Download the `.rmskin` file from the [latest release](../../releases/latest).
-3. Double-click it and click **Install**.
+1. Get [Rainmeter](https://www.rainmeter.net/) 4.1+
+2. Download the `.rmskin` from the [latest release](../../releases/latest)
+3. Double-click it → **Install**
 
 ## Set up
 
-Right-click the icon and choose **Choose audio devices...**. Each setup (speakers and headphones) has an output and a microphone. Hover over one to see your connected devices, then click the one you want. The first click on a fresh install opens this menu too.
+Right-click the icon → **Choose audio devices...** → pick an output and mic for each setup.
 
-Leave a microphone unset if you only want to switch the playback device.
+- On a new install, the first click opens this menu
+- Leave a mic unset to switch only the output
 
 ## Settings
 
-Everything is in `Skins\Audio + Mic Switch\@Resources\Variables.inc` (right-click the icon → **Edit skin**, or open the file directly):
+In `@Resources\Variables.inc` (right-click → **Edit skin**):
 
 | Setting | What it does |
 | --- | --- |
 | `IconColor` | `White` or `Black` |
-| `SpeakerOutput`, `SpeakerMic` | Devices for the speakers setup |
-| `HeadphoneOutput`, `HeadphoneMic` | Devices for the headphones setup |
-| `VolumeStep` | Volume change per scroll step, in percent (default `2`) |
+| `SpeakerOutput` / `SpeakerMic` | Speakers setup |
+| `HeadphoneOutput` / `HeadphoneMic` | Headphones setup |
+| `VolumeStep` | % per scroll (default `2`) |
 
-Device names are the ones shown in Windows Sound settings. A unique part of the name is enough (e.g. `BlackShark V3 Pro - Game`). Your settings are kept when you install a newer version.
+- Use names from Windows Sound settings. Part of a name works.
+- Refresh the skin after editing.
+- Updates keep your settings.
 
-After changing the file by hand, refresh the skin (right-click → **Refresh skin**).
+## About the plugin (DLL)
 
-## How it works
+**Why it's needed:** Skins can't change Windows settings on their own. Rainmeter's built-in plugin switches outputs but not mics, so this skin comes with its own: `AudioMicSwitch.dll`.
 
-The skin uses a small plugin, `AudioMicSwitch.dll`, included in the installer for both 32-bit and 64-bit Rainmeter. Source is in [`plugin/`](plugin/AudioMicSwitch.cpp).
+**What it does:** Lists your audio devices, sets the default output and mic, changes volume. Nothing else.
 
-Devices are picked **by name**, not by position, so plugging in or turning off another device doesn't change which one gets selected. When switching, the device becomes the Windows default for all roles, including the "communications" device that apps like Discord and Teams use.
+- No internet
+- No background process (only runs while the skin is loaded)
 
-Windows has no official API for changing the default audio device. Like Rainmeter's built-in audio plugin and other audio switchers, this uses the undocumented interface behind the Windows Sound control panel. It works on Windows 10 and 11, but a future Windows update could change it.
+**Where it is:**
 
-## Building from source
+- Source: [`plugin/AudioMicSwitch.cpp`](plugin/AudioMicSwitch.cpp)
+- Download: inside the `.rmskin` on [Releases](../../releases)
+- Once installed: `%APPDATA%\Rainmeter\Plugins\AudioMicSwitch.dll`
 
-Requirements: Windows and [llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases) (the `ucrt-x86_64` zip).
+**Check it:** Each release lists the DLL's SHA-256. Compare with yours in PowerShell:
+
+```powershell
+Get-FileHash "$env:APPDATA\Rainmeter\Plugins\AudioMicSwitch.dll"
+```
+
+**Remove it:** Unload the skin, then delete that file.
+
+## Good to know
+
+- Devices are matched **by name**. Plugging in other devices won't break it.
+- Switching also sets the "communications" device (Discord, Teams).
+- Windows has no official way to do this. Like other audio switchers, it uses the one behind the Sound control panel. Works on Windows 10 and 11. A future update could break it.
+
+## Build from source
+
+Needs [llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases) (the `ucrt-x86_64` zip).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File build.ps1 -Version 1.0.0 -Toolchain C:\path\to\llvm-mingw
 ```
 
-This builds the plugin for 32-bit and 64-bit and writes the installer to `dist\AudioMicSwitch_<version>.rmskin`. The skin itself is in [`skin/`](skin).
+- Output: `dist\AudioMicSwitch_<version>.rmskin`
+- Skin files: [`skin/`](skin)
+- Builds are reproducible: same source + same llvm-mingw = same DLL
 
 ## Credits
 
-By AdviceWithSalt & [ok-jaime](https://github.com/ok-jaime). Based on the AudioChanger skin by AdviceWithSalt.
+AdviceWithSalt & [ok-jaime](https://github.com/ok-jaime). Based on AdviceWithSalt's AudioChanger.
