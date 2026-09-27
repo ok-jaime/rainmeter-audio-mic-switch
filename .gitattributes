@@ -1,0 +1,3 @@
+# UTF-16 settings file: keep byte-for-byte
+*.inc -text
+*.png binary
